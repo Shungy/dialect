@@ -100,8 +100,14 @@ class Provider(SoupProvider):
     def generate_url(self):
         return self.format_url(self.instance_url, "/generate")
 
+    @property
+    def headers(self) -> dict:
+        if self.api_key:
+            return {"Authorization": f"Bearer {self.api_key}"}
+        return {}
+
     async def _fetch_model_names(self, url) -> list[str]:
-        response = await self.get(self.format_url(url, "/tags"), check_common=False)
+        response = await self.get(self.format_url(url, "/tags"), self.headers, check_common=False)
         return [m["name"] for m in response.get("models", [])]
 
     async def validate_instance(self, url):
@@ -146,7 +152,7 @@ class Provider(SoupProvider):
     async def stream_translate(self, request: TranslationRequest):
         prompt = self._build_prompt(request)
         data = {"model": self.engine, "prompt": prompt, "stream": True}
-        message = self.create_message("POST", self.generate_url, data)
+        message = self.create_message("POST", self.generate_url, data, self.headers)
 
         try:
             stream = await Session.get().send_async(message, 0, None)
