@@ -150,28 +150,23 @@ class Provider(SoupProvider):
             return prompt + request.text
 
     async def stream_translate(self, request: TranslationRequest):
+        from gi.repository import Gio
+
         prompt = self._build_prompt(request)
         data = {"model": self.engine, "prompt": prompt, "stream": True}
         message = self.create_message("POST", self.generate_url, data, self.headers)
 
         try:
-            stream = await Session.get().send_async(message, 0, None)
-            buf = b""
+            stream = Gio.DataInputStream.new(await Session.get().send_async(message, 0, None))
             while True:
-                chunk = await stream.read_bytes_async(4096, 0, None)
-                if chunk.get_size() == 0:
+                line, _ = await stream.read_line_async(0, None)
+                if not line:
                     break
-                buf += chunk.get_data()
-                while b"\n" in buf:
-                    line, buf = buf.split(b"\n", 1)
-                    if not line:
-                        continue
-                    obj = json.loads(line)
-                    token = obj.get("response", "")
-                    if token:
-                        yield token
-                    if obj.get("done", False):
-                        return
+                obj = json.loads(line)
+                if token := obj.get("response"):
+                    yield token
+                if obj.get("done", False):
+                    return
         except Exception as exc:
             raise RequestError(str(exc)) from exc
 
