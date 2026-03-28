@@ -321,6 +321,9 @@ class DialectWindow(Adw.ApplicationWindow):
             "changed::instance-url", self._on_provider_changed, self.provider["trans"].name
         )
         self.provider["trans"].settings.connect(
+            "changed::engine-name", self._on_provider_changed, self.provider["trans"].name
+        )
+        self.provider["trans"].settings.connect(
             "changed::api-key", self._on_provider_changed, self.provider["trans"].name
         )
 

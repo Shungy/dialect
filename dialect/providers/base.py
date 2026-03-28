@@ -26,6 +26,8 @@ class ProviderFeature(Flag):
     """ Provider has no features """
     INSTANCES = auto()
     """ If it supports changing the instance url """
+    ENGINES = auto()
+    """ If it supports changing the translation engine model """
     API_KEY = auto()
     """ If the api key is supported but not necessary """
     API_KEY_REQUIRED = auto()
@@ -106,6 +108,7 @@ class BaseProvider:
 
     defaults: ProviderDefaults = {
         "instance_url": "",
+        "engine_name": "",
         "api_key": "",
         "src_langs": ["en", "fr", "es", "de"],
         "dest_langs": ["fr", "es", "de", "en"],
@@ -146,6 +149,18 @@ class BaseProvider:
 
         Returns:
             If the URL is a valid instance of the provider ot not.
+        """
+        raise NotImplementedError()
+
+    async def validate_engine(self, name: str) -> bool:
+        """
+        Validate a translation engine model name.
+
+        Args:
+            name: The engine/model name to validate.
+
+        Returns:
+            If the engine name is valid and available.
         """
         raise NotImplementedError()
 
@@ -296,6 +311,10 @@ class BaseProvider:
         return ProviderFeature.INSTANCES in self.features
 
     @property
+    def supports_engines(self) -> bool:
+        return ProviderFeature.ENGINES in self.features
+
+    @property
     def supports_api_key(self) -> bool:
         return ProviderFeature.API_KEY in self.features
 
@@ -339,6 +358,19 @@ class BaseProvider:
     def reset_instance_url(self):
         """Resets saved instance url"""
         self.instance_url = ""
+
+    @property
+    def engine(self) -> str:
+        """Translation engine model name saved on settings"""
+        return self.settings.engine
+
+    @engine.setter
+    def engine(self, name: str):
+        self.settings.engine = name
+
+    def reset_engine(self):
+        """Resets saved translation engine model name"""
+        self.engine = ""
 
     @property
     def api_key(self) -> str:
