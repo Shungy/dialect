@@ -32,15 +32,58 @@ TRANSLATE_PROMPT = (
 )
 
 SUPPORTED_LANGS = [
-    "zh", "en", "fr", "pt", "es", "ja", "tr", "ru", "ar", "ko", "th", "it", "de", "vi", "ms", "id", "tl", "hi", "pl", "cs", "nl", "km", "my", "fa", "gu", "ur", "te", "mr", "he", "bn", "ta", "uk", "bo", "kk", "mn", "ug", "yue"
+    "zh",
+    "en",
+    "fr",
+    "pt",
+    "es",
+    "ja",
+    "tr",
+    "ru",
+    "ar",
+    "ko",
+    "th",
+    "it",
+    "de",
+    "vi",
+    "ms",
+    "id",
+    "tl",
+    "hi",
+    "pl",
+    "cs",
+    "nl",
+    "km",
+    "my",
+    "fa",
+    "gu",
+    "ur",
+    "te",
+    "mr",
+    "he",
+    "bn",
+    "ta",
+    "uk",
+    "bo",
+    "kk",
+    "mn",
+    "ug",
+    "yue",
 ]
+
 
 class Provider(SoupProvider):
     name = "ollama"
     prettyname = "Ollama"
 
     capabilities = ProviderCapability.TRANSLATION
-    features = ProviderFeature.INSTANCES | ProviderFeature.ENGINES | ProviderFeature.DETECTION | ProviderFeature.API_KEY | ProviderFeature.STREAMING
+    features = (
+        ProviderFeature.INSTANCES
+        | ProviderFeature.ENGINES
+        | ProviderFeature.DETECTION
+        | ProviderFeature.API_KEY
+        | ProviderFeature.STREAMING
+    )
 
     defaults = {
         "instance_url": "localhost:11434/api",
