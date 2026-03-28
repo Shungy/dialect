@@ -10,7 +10,7 @@ from dialect.providers.base import (
     Translation,
     TranslationRequest,
 )
-from dialect.providers.errors import RequestError, UnexpectedError
+from dialect.providers.errors import RequestError
 from dialect.providers.soup import SoupProvider
 from dialect.session import Session
 

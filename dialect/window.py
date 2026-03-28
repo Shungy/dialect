@@ -1186,7 +1186,7 @@ class DialectWindow(Adw.ApplicationWindow):
                     else:
                         self.src_lang_selector.selected = translation.detected
 
-                if not ProviderFeature.STREAMING in self.provider["trans"].features:
+                if ProviderFeature.STREAMING not in self.provider["trans"].features:
                     self.dest_buffer.props.text = translation.text
 
                 # Finally, translation is saved in history
