@@ -20,6 +20,7 @@ from dialect.providers import (
     APIKeyRequired,
     BaseProvider,
     ProviderError,
+    ProviderFeature,
     RequestError,
     Translation,
     TranslationRequest,
@@ -1166,7 +1167,15 @@ class DialectWindow(Adw.ApplicationWindow):
             self.translation_loading = True
 
             try:
-                translation = await self.provider["trans"].translate(request)
+                if ProviderFeature.STREAMING in self.provider["trans"].features:
+                    self.dest_buffer.props.text = ""
+                    parts = []
+                    async for token in self.provider["trans"].stream_translate(request):
+                        parts.append(token)
+                        self.dest_buffer.props.text = "".join(parts)
+                    translation = Translation("".join(parts), request)
+                else:
+                    translation = await self.provider["trans"].translate(request)
 
                 if translation.detected and self.src_lang_selector.selected == "auto":
                     if Settings.get().src_auto:
@@ -1177,7 +1186,8 @@ class DialectWindow(Adw.ApplicationWindow):
                     else:
                         self.src_lang_selector.selected = translation.detected
 
-                self.dest_buffer.props.text = translation.text
+                if not ProviderFeature.STREAMING in self.provider["trans"].features:
+                    self.dest_buffer.props.text = translation.text
 
                 # Finally, translation is saved in history
                 self.add_history_entry(translation)

@@ -12,6 +12,7 @@ from dialect.providers.base import (
 )
 from dialect.providers.errors import RequestError, UnexpectedError
 from dialect.providers.soup import SoupProvider
+from dialect.session import Session
 
 AUTO_PROMPT = (
     "You are a professional {dest_lang} ({dest_code}) translator. Your goal is to"
@@ -31,17 +32,7 @@ TRANSLATE_PROMPT = (
 )
 
 SUPPORTED_LANGS = [
-    "aa", "ab", "af", "ak", "am", "an", "ar", "as", "az", "ba", "be", "bg", "bm", "bn", "bo",
-    "br", "bs", "ca", "ce", "co", "cs", "cv", "cy", "da", "de", "dv", "dz", "ee", "el", "en",
-    "es", "et", "eu", "fa", "ff", "fi", "fo", "fr", "fy", "ga", "gd", "gl", "gn", "gu", "gv",
-    "ha", "he", "hi", "hr", "ht", "hu", "hy", "ia", "id", "ie", "ig", "ii", "ik", "io", "is",
-    "it", "iu", "ja", "jv", "ka", "ki", "kk", "kl", "km", "kn", "ko", "ks", "ku", "kw", "ky",
-    "la", "lb", "lg", "ln", "lo", "lt", "lu", "lv", "mg", "mi", "mk", "ml", "mn", "mr", "ms",
-    "mt", "my", "nb", "nd", "ne", "nl", "nn", "no", "nr", "nv", "ny", "oc", "om", "or", "os",
-    "pa", "pl", "ps", "pt", "qu", "rm", "rn", "ro", "ru", "rw", "sa", "sc", "sd", "se", "sg",
-    "si", "sk", "sl", "sn", "so", "sq", "sr", "ss", "st", "su", "sv", "sw", "ta", "te", "tg",
-    "th", "ti", "tk", "tl", "tn", "to", "tr", "ts", "tt", "ug", "uk", "ur", "uz", "ve", "vi",
-    "vo", "wa", "wo", "xh", "yi", "yo", "za", "zh", "zu",
+    "zh", "en", "fr", "pt", "es", "ja", "tr", "ru", "ar", "ko", "th", "it", "de", "vi", "ms", "id", "tl", "hi", "pl", "cs", "nl", "km", "my", "fa", "gu", "ur", "te", "mr", "he", "bn", "ta", "uk", "bo", "kk", "mn", "ug", "yue"
 ]
 
 class Provider(SoupProvider):
@@ -49,7 +40,7 @@ class Provider(SoupProvider):
     prettyname = "Ollama"
 
     capabilities = ProviderCapability.TRANSLATION
-    features = ProviderFeature.INSTANCES | ProviderFeature.ENGINES | ProviderFeature.DETECTION | ProviderFeature.API_KEY
+    features = ProviderFeature.INSTANCES | ProviderFeature.ENGINES | ProviderFeature.DETECTION | ProviderFeature.API_KEY | ProviderFeature.STREAMING
 
     defaults = {
         "instance_url": "localhost:11434/api",
@@ -109,28 +100,37 @@ class Provider(SoupProvider):
             )
             return prompt + request.text
 
-    async def translate(self, request: TranslationRequest) -> Translation:
+    async def stream_translate(self, request: TranslationRequest):
         prompt = self._build_prompt(request)
-
-        data = {
-            "model": self.engine,
-            "prompt": prompt,
-        }
-
-        # Ollama returns newline-delimited JSON (streaming)
-        raw = await self.post(self.generate_url, data, return_json=False)
+        data = {"model": self.engine, "prompt": prompt, "stream": True}
+        message = self.create_message("POST", self.generate_url, data)
 
         try:
-            parts = []
-            for line in raw.splitlines():
-                if not line:
-                    continue
-                chunk = json.loads(line)
-                parts.append(chunk.get("response", ""))
-            translated = "".join(parts)
-            return Translation(translated, request)
+            stream = await Session.get().send_async(message, 0, None)
+            buf = b""
+            while True:
+                chunk = await stream.read_bytes_async(4096, 0, None)
+                if chunk.get_size() == 0:
+                    break
+                buf += chunk.get_data()
+                while b"\n" in buf:
+                    line, buf = buf.split(b"\n", 1)
+                    if not line:
+                        continue
+                    obj = json.loads(line)
+                    token = obj.get("response", "")
+                    if token:
+                        yield token
+                    if obj.get("done", False):
+                        return
         except Exception as exc:
-            raise UnexpectedError from exc
+            raise RequestError(str(exc)) from exc
+
+    async def translate(self, request: TranslationRequest) -> Translation:
+        parts = []
+        async for token in self.stream_translate(request):
+            parts.append(token)
+        return Translation("".join(parts), request)
 
     def check_known_errors(self, status, data):
         pass

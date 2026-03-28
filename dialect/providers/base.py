@@ -42,6 +42,9 @@ class ProviderFeature(Flag):
     """ If it supports showing translation pronunciation """
     SUGGESTIONS = auto()
     """ If it supports sending translation suggestions to the service """
+    STREAMING = auto()
+    """ If it supports streaming translation tokens progressively """
+    """ If it supports sending translation suggestions to the service """
 
 
 class ProviderLangModel(Enum):
@@ -198,6 +201,23 @@ class BaseProvider:
             A new translation object.
         """
         raise NotImplementedError()
+
+    async def stream_translate(self, request: TranslationRequest):
+        """
+        Streams translation tokens progressively (async generator).
+
+        Only available when ``ProviderFeature.STREAMING`` is in features.
+
+        Args:
+            request: The translation request.
+
+        Yields:
+            str tokens as they arrive.
+        """
+        raise NotImplementedError()
+        # Make this an async generator
+        return
+        yield  # noqa
 
     async def suggest(self, text: str, src: str, dest: str, suggestion: str) -> bool:
         """
