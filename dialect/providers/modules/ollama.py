@@ -7,7 +7,6 @@ from dialect.define import LANGUAGES as ALL_LANGUAGES
 from dialect.providers.base import (
     ProviderCapability,
     ProviderFeature,
-    Translation,
     TranslationRequest,
 )
 from dialect.providers.errors import RequestError
@@ -169,12 +168,6 @@ class Provider(SoupProvider):
                     return
         except Exception as exc:
             raise RequestError(str(exc)) from exc
-
-    async def translate(self, request: TranslationRequest) -> Translation:
-        parts = []
-        async for token in self.stream_translate(request):
-            parts.append(token)
-        return Translation("".join(parts), request)
 
     def check_known_errors(self, status, data):
         pass
