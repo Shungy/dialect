@@ -44,7 +44,6 @@ class ProviderFeature(Flag):
     """ If it supports sending translation suggestions to the service """
     STREAMING = auto()
     """ If it supports streaming translation tokens progressively """
-    """ If it supports sending translation suggestions to the service """
 
 
 class ProviderLangModel(Enum):
