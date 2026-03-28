@@ -90,7 +90,7 @@ class Provider(SoupProvider):
         "engine_name": "translategemma",
         "api_key": "",
         "src_langs": [],
-        "dest_langs": ["en", "zh", "hi", "es", "ar"],
+        "dest_langs": ["en"],
     }
 
     def __init__(self, **kwargs):
